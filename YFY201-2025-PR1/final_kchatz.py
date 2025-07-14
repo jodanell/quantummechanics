@@ -35,6 +35,18 @@ rhf_sto = {
     10: ([0.6549, 0.3477, 0.1391, 0.0598, 0.0252, 0.0110, 0.0049, 0.0021, 0.0009], [6.7150, 16.2150, 1.7700, 0.5920, 0.2100, 0.0780, 0.0310, 0.0110, 0.0040], [2, 2, 6])
 }
 
+ionization_potentials = {
+    2: 24.587,   # He
+    3: 5.392,    # Li
+    4: 9.323,    # Be
+    5: 8.298,    # B
+    6: 11.260,   # C
+    7: 14.534,   # N
+    8: 13.618,   # O
+    9: 17.423,   # F
+    10: 21.565   # Ne
+}
+
 #Print header for the results table
 print(f"{'Z':<3} {'Sr':<8} {'Sk':<8} {'S':<8} {'Or':<8} {'Ok':<8} {'Fr':<8} {'Fk':<8} {'O_total':<8} {'F_total':<8}")
 print("_" * 80)
@@ -529,4 +541,176 @@ else:
     print(f"with R² = {r_squared_exp1:.4f}")
 print("\nHowever, the logarithmic relationship from the paper:")
 print(f"S = {p_log[1]:.3f} + {p_log[0]:.3f} ln(Z) with R² = {r_squared_paper:.4f}")
-print("appears to provide the best fit to the data.")
+print("appears to provide the best fit to the data.\n")
+
+# Get atomic numbers (Z) for which we have results
+Z_values = results['Z']
+
+# Match each Z with its ionization potential (from a predefined dictionary)
+IP_values = [ionization_potentials[z] for z in Z_values]
+
+# Total Shannon entropy values (position + momentum) for each atom
+S_values = results['S']
+
+# Prepare the plot area – 2 rows, 3 columns of subplots
+fig3 = plt.figure(figsize=(14, 10))
+
+# Total Shannon entropy vs Ionization potential 
+ax1 = plt.subplot(2, 3, 1)
+ax1.plot(IP_values, S_values, 'ro-', linewidth=2, markersize=8)
+
+# Add atomic number labels to each point
+for i, z in enumerate(Z_values):
+    ax1.annotate(f'Z={z}', (IP_values[i], S_values[i]),
+                 xytext=(5, 5), textcoords='offset points', fontsize=8)
+
+ax1.set_xlabel('Ionization Potential (eV)')
+ax1.set_ylabel('Shannon Entropy S')
+ax1.set_title('Shannon Entropy vs Ionization Potential')
+ax1.grid(True, alpha=0.3)
+
+# Compute and display correlation coefficient between S and IP
+correlation_coeff = np.corrcoef(IP_values, S_values)[0, 1]
+ax1.text(0.05, 0.95, f'Correlation: {correlation_coeff:.3f}',
+         transform=ax1.transAxes, fontsize=10,
+         bbox=dict(facecolor='white', alpha=0.8))
+
+# Sr and Sk separately vs IP 
+ax2 = plt.subplot(2, 3, 2)
+ax2.plot(IP_values, results['Sr'], 'bo-', linewidth=2, markersize=6, label='Sr (position)')
+ax2.plot(IP_values, results['Sk'], 'go-', linewidth=2, markersize=6, label='Sk (momentum)')
+
+ax2.set_xlabel('Ionization Potential (eV)')
+ax2.set_ylabel('Shannon Entropy Components')
+ax2.set_title('Shannon Entropy Components vs IP')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+
+# Correlation for each component separately
+corr_Sr = np.corrcoef(IP_values, results['Sr'])[0, 1]
+corr_Sk = np.corrcoef(IP_values, results['Sk'])[0, 1]
+ax2.text(0.05, 0.95, f'Sr corr: {corr_Sr:.3f}\nSk corr: {corr_Sk:.3f}',
+         transform=ax2.transAxes, fontsize=9,
+         bbox=dict(facecolor='white', alpha=0.8))
+
+# Onicescu energy vs IP
+ax3 = plt.subplot(2, 3, 3)
+ax3.plot(IP_values, results['O_total'], 'mo-', linewidth=2, markersize=8)
+
+for i, z in enumerate(Z_values):
+    ax3.annotate(f'Z={z}', (IP_values[i], results['O_total'][i]),
+                 xytext=(5, 5), textcoords='offset points', fontsize=8)
+
+ax3.set_xlabel('Ionization Potential (eV)')
+ax3.set_ylabel('Onicescu Energy')
+ax3.set_title('Onicescu Energy vs Ionization Potential')
+ax3.grid(True, alpha=0.3)
+
+corr_O = np.corrcoef(IP_values, results['O_total'])[0, 1]
+ax3.text(0.05, 0.95, f'Correlation: {corr_O:.3f}',
+         transform=ax3.transAxes, fontsize=10,
+         bbox=dict(facecolor='white', alpha=0.8))
+
+# Fisher information vs IP
+ax4 = plt.subplot(2, 3, 4)
+ax4.plot(IP_values, results['F_total'], 'co-', linewidth=2, markersize=8)
+
+for i, z in enumerate(Z_values):
+    ax4.annotate(f'Z={z}', (IP_values[i], results['F_total'][i]),
+                 xytext=(5, 5), textcoords='offset points', fontsize=8)
+
+ax4.set_xlabel('Ionization Potential (eV)')
+ax4.set_ylabel('Fisher Information')
+ax4.set_title('Fisher Information vs Ionization Potential')
+ax4.grid(True, alpha=0.3)
+
+corr_F = np.corrcoef(IP_values, results['F_total'])[0, 1]
+ax4.text(0.05, 0.95, f'Correlation: {corr_F:.3f}',
+         transform=ax4.transAxes, fontsize=10,
+         bbox=dict(facecolor='white', alpha=0.8))
+
+# Overview of all information measures vs Z (not IP)
+ax5 = plt.subplot(2, 3, 5)
+ax5.plot(Z_values, S_values, 'ro-', linewidth=2, markersize=6, label='Shannon Entropy')
+ax5.plot(Z_values, results['O_total'], 'mo-', linewidth=2, markersize=6, label='Onicescu Energy')
+ax5.plot(Z_values, results['F_total'], 'co-', linewidth=2, markersize=6, label='Fisher Information')
+
+ax5.set_xlabel('Atomic Number Z')
+ax5.set_ylabel('Information Measures')
+ax5.set_title('Information Measures vs Atomic Number')
+ax5.legend()
+ax5.grid(True, alpha=0.3)
+
+# IP vs Z directly
+ax6 = plt.subplot(2, 3, 6)
+ax6.plot(Z_values, IP_values, 'ko-', linewidth=2, markersize=8)
+
+for i, z in enumerate(Z_values):
+    ax6.annotate(f'{z}', (Z_values[i], IP_values[i]),
+                 xytext=(5, 5), textcoords='offset points', fontsize=8)
+
+ax6.set_xlabel('Atomic Number Z')
+ax6.set_ylabel('Ionization Potential (eV)')
+ax6.set_title('Ionization Potential vs Atomic Number')
+ax6.grid(True, alpha=0.3)
+
+plt.tight_layout()
+plt.show()
+
+# Print numerical table with all data for cross-check
+print("\nCORRELATION ANALYSIS WITH IONIZATION POTENTIAL")
+print("_" * 60)
+print(f"{'Element':<8} {'Z':<3} {'IP (eV)':<8} {'S':<8} {'Sr':<8} {'Sk':<8} {'O':<8} {'F':<8}")
+print("-" * 60)
+
+# Mapping atomic number to symbol – adjust this as needed if more elements included
+element_names = ['', '', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne']
+
+# Print each element’s data in a row
+for i, z in enumerate(Z_values):
+    print(f"{element_names[z]:<8} {z:<3} {IP_values[i]:<8.3f} {S_values[i]:<8.4f} "
+          f"{results['Sr'][i]:<8.4f} {results['Sk'][i]:<8.4f} {results['O_total'][i]:<8.4f} "
+          f"{results['F_total'][i]:<8.4f}")
+
+# Print correlation coefficients
+print("\nCorrelation coefficients with ionization potential:")
+print(f"Shannon Entropy (total):     {correlation_coeff:.4f}")
+print(f"Shannon Entropy (position):  {corr_Sr:.4f}")
+print(f"Shannon Entropy (momentum):  {corr_Sk:.4f}")
+print(f"Onicescu Energy:             {corr_O:.4f}")
+print(f"Fisher Information:          {corr_F:.4f}")
+
+# Interpretation of correlation strength
+print("\nInterpretation:")
+if abs(correlation_coeff) > 0.7:
+    strength = "strong"
+elif abs(correlation_coeff) > 0.3:
+    strength = "moderate"
+else:
+    strength = "weak"
+
+direction = "positive" if correlation_coeff > 0 else "negative"
+print(f"The Shannon entropy shows a {strength} {direction} correlation with ionization potential.")
+
+# Try polynomial fits (linear and quadratic) for S vs IP
+if len(IP_values) > 2:
+    # Linear fit S = a*IP + b
+    p_linear = np.polyfit(IP_values, S_values, 1)
+    S_linear_fit = np.polyval(p_linear, IP_values)
+
+    # Try quadratic only if we have enough data points
+    if len(IP_values) > 3:
+        p_quad = np.polyfit(IP_values, S_values, 2)
+        S_quad_fit = np.polyval(p_quad, IP_values)
+
+        # Compute R^2 for both fits
+        ss_res_linear = np.sum((S_values - S_linear_fit) ** 2)
+        ss_tot = np.sum((S_values - np.mean(S_values)) ** 2)
+        r_squared_linear = 1 - (ss_res_linear / ss_tot)
+
+        ss_res_quad = np.sum((S_values - S_quad_fit) ** 2)
+        r_squared_quad = 1 - (ss_res_quad / ss_tot)
+
+        print(f"\nFitting Shannon entropy vs ionization potential:")
+        print(f"Linear fit:    S = {p_linear[1]:.4f} + {p_linear[0]:.4f} * IP    (R² = {r_squared_linear:.4f})")
+        print(f"Quadratic fit: S = {p_quad[2]:.4f} + {p_quad[1]:.4f} * IP + {p_quad[0]:.4f} * IP²    (R² = {r_squared_quad:.4f})")
